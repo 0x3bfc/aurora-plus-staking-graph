@@ -1,18 +1,16 @@
 const fetch = (...args) =>
-  import("node-fetch").then(({ default: fetch }) => fetch(...args))
-const { createClient } = require("@urql/core")
-const ethers = require("ethers")
-
-const APIURL =
-  "https://api.thegraph.com/subgraphs/name/paouvrard/aurora-plus-staking"
+  import('node-fetch').then(({ default: fetch }) => fetch(...args))
+const { GRAPH_API_URL } = require('./constants')
+const { createClient } = require('@urql/core')
+const ethers = require('ethers')
 
 const client = createClient({
-  url: APIURL,
-  fetch,
+  url: GRAPH_API_URL,
+  fetch
 })
 
-async function main() {
-  const searchAccounts = ["0x...", "0x..."]
+async function main () {
+  const searchAccounts = ['0x...', '0x...']
   const auroraDecimals = 18
   const eventsQuery = `
     query {
@@ -64,7 +62,7 @@ async function main() {
       type: e.__typename,
       amount: ethers.utils.formatUnits(e.amount, auroraDecimals),
       date: new Date(e.blockTimestamp * 1000).toDateString(),
-      tx: e.transactionHash,
+      tx: e.transactionHash
     }))
     console.log(`${account}: ${JSON.stringify(prettyAccountEvents, 2, 2)}`)
   })

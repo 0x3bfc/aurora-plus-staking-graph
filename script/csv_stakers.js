@@ -1,31 +1,25 @@
 const fetch = (...args) =>
-  import("node-fetch").then(({ default: fetch }) => fetch(...args))
-const { createClient } = require("@urql/core")
-const ethers = require("ethers")
-const fs = require("fs")
-
-const APIURL =
-  "https://api.thegraph.com/subgraphs/name/paouvrard/aurora-plus-staking"
+  import('node-fetch').then(({ default: fetch }) => fetch(...args))
+const { GRAPH_API_URL, RPC_URL, STAKING_CONTRACT } = require('./constants')
+const { createClient } = require('@urql/core')
+const ethers = require('ethers')
+const fs = require('fs')
 
 const client = createClient({
-  url: APIURL,
-  fetch,
+  url: GRAPH_API_URL,
+  fetch
 })
 
-async function main() {
+async function main () {
   const voteStreamId = 5
   const auroraDecimals = 18
   const voteDecimals = 18
   const provider = new ethers.providers.JsonRpcBatchProvider(
-    "https://mainnet.aurora.dev"
+    RPC_URL
   )
   const staking = new ethers.Contract(
-    "0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec",
-    [
-      "function getTotalAmountOfStakedAurora() view returns (uint)",
-      "function totalAuroraShares() view returns (uint)",
-      "function getStreamClaimableAmount(uint streamId, address account) view returns (uint)",
-    ],
+    STAKING_CONTRACT.ADDRESS,
+    STAKING_CONTRACT.ABI,
     provider
   )
   const totalStaked = await staking.getTotalAmountOfStakedAurora()
@@ -39,7 +33,7 @@ async function main() {
   const maxItems = 6000 // skip must be <= 5000
   const pageSize = 1000
   let itemsCount = 0
-  let allStakers = []
+  const allStakers = []
   while (true) {
     const stakersQuery = `
       query {
@@ -48,7 +42,7 @@ async function main() {
           skip: ${itemsCount},
           orderBy: shares,
           orderDirection: desc,
-          where: { amount_gt: ${ethers.utils.parseUnits("1.0", 18)} }
+          where: { amount_gt: ${ethers.utils.parseUnits('1.0', 18)} }
         ) {
           user
           amount
@@ -85,7 +79,7 @@ async function main() {
       voteTokens: ethers.utils.formatUnits(
         claimableVoteTokens[i].add(s.claimedVote).add(s.withdrawnVote),
         voteDecimals
-      ),
+      )
     }))
     itemsCount += pageSize
     allStakers.push(...prettyStaker)
@@ -94,12 +88,12 @@ async function main() {
 
   const csvString = [
     [
-      "Address",
-      "Amount Staked ($AURORA)",
-      "Shares Count",
-      "Shares Value ($AURORA)",
-      "Stream Shares Count",
-      "VOTE Tokens",
+      'Address',
+      'Amount Staked ($AURORA)',
+      'Shares Count',
+      'Shares Value ($AURORA)',
+      'Stream Shares Count',
+      'VOTE Tokens'
     ],
     ...allStakers.map((s) => [
       s.user,
@@ -107,15 +101,15 @@ async function main() {
       s.sharesCount,
       s.sharesAuroraValue,
       s.streamSharesCount,
-      s.voteTokens,
-    ]),
+      s.voteTokens
+    ])
   ]
-    .map((e) => e.join(","))
-    .join("\n")
+    .map((e) => e.join(','))
+    .join('\n')
 
-  fs.writeFileSync("stakers.csv", csvString)
+  fs.writeFileSync('stakers.csv', csvString)
   console.log(`${allStakers.length} stakers have staked more than 1 $AURORA`)
-  console.log("> stakers.csv")
+  console.log('> stakers.csv')
 }
 
 main()
